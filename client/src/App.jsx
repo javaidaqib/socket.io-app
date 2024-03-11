@@ -5,9 +5,21 @@ import {
   TextField,
   Button,
   Checkbox,
+  Stack,
+  Paper,
+  Box,
 } from "@mui/material";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
+import { styled } from "@mui/material/styles";
+
+const Item = styled(Paper)(() => ({
+  backgroundColor: "#757de8",
+  padding: "8px 16px",
+  textAlign: "center",
+  color: "white",
+  flexGrow: 1,
+}));
 
 function App() {
   const socket = useMemo(() => io("http://localhost:4000"), []);
@@ -15,7 +27,9 @@ function App() {
   const [message, setMessage] = useState("");
   const [socketId, setSocketId] = useState("");
   const [room, setRoom] = useState("");
+  const [messages, setMessages] = useState([]);
   const [isPrivateMsg, setIsPrivateMsg] = useState(false);
+  const [chatRoom, setChatRoom] = useState("");
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -27,7 +41,10 @@ function App() {
     });
 
     socket.on("emit-msg", (data) => {
-      console.log("emit-msg : ", data);
+      setMessages((prevState) => [
+        ...prevState,
+        { message: data.message, from: data.socketId },
+      ]);
       toast.success(`${data.socketId} : ${data.message}`);
     });
 
@@ -35,6 +52,13 @@ function App() {
       socket.disconnect();
     };
   }, []);
+
+  const handleRoomSubmit = (e) => {
+    e.preventDefault();
+    socket.emit("join-chatRoom", chatRoom);
+    toast.success(`Chat Room ${chatRoom} is created!`);
+    setChatRoom("");
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -61,7 +85,38 @@ function App() {
         Your Socket ID is: <strong>{socketId}</strong>
       </Typography>
 
-      {/* form */}
+      {/* Room Form */}
+      <form
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "1rem",
+          marginTop: "3rem",
+        }}
+        onSubmit={(e) => handleRoomSubmit(e)}
+      >
+        <TextField
+          id="outlined-basic"
+          label="Enter Chat Room name..."
+          variant="outlined"
+          value={chatRoom}
+          onChange={(e) => setChatRoom(e.target.value)}
+        />
+
+        <Button
+          type="submit"
+          sx={{ width: "160px" }}
+          variant="contained"
+          color="primary"
+          disabled={!chatRoom}
+        >
+          Join Room
+        </Button>
+      </form>
+
+      {/* Msg Form */}
       <form
         style={{
           display: "flex",
@@ -111,10 +166,32 @@ function App() {
           sx={{ width: "60px" }}
           variant="contained"
           color="primary"
+          disabled={!message}
         >
           Send
         </Button>
       </form>
+
+      {messages.length > 0 ? (
+        <Stack
+          direction="column"
+          sx={{
+            bgcolor: "#becbd6",
+            p: "12px",
+            width: "60%",
+            my: "2rem",
+          }}
+          justifyContent="center"
+          alignItems="center"
+          spacing={2}
+        >
+          {messages.map((data, ind) => (
+            <Item key={ind}>
+              <strong>{data.message}</strong> - {data.from}
+            </Item>
+          ))}
+        </Stack>
+      ) : null}
     </Container>
   );
 }

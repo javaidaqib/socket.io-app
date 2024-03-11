@@ -23,12 +23,16 @@ io.on("connection", (socket) => {
   });
 
   socket.on("message", ({ message, room, socketId }) => {
-    console.log("message be : ", { message, room, socketId });
     if (room) {
-      io.to(room).emit("emit-msg", { message, room, socketId });
+      socket.to(room).emit("emit-msg", { message, room, socketId });
     } else {
       socket.broadcast.emit("emit-msg", { message, room, socketId });
     }
+  });
+
+  socket.on("join-chatRoom", (chatRoom) => {
+    console.log(`User ${socket.id} joined the chatroom.`);
+    socket.join(chatRoom);
   });
 });
 
